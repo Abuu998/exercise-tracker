@@ -12,3 +12,18 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  username  String     @unique
+  exercises Exercise[]
+}
+
+model Exercise {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  description String
+  duration    Int
+  date        DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
