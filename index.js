@@ -1,7 +1,10 @@
-const express = require('express')
+import express from "express"
+import cors from "cors"
+import { config } from "dotenv"
+import router from "./routes";
+
 const app = express()
-const cors = require('cors')
-require('dotenv').config()
+config()
 
 app.use(cors())
 app.use(express.static('public'))
@@ -11,7 +14,7 @@ app.get('/', (req, res) => {
 
 
 
-
+app.use(router)
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
