@@ -5,22 +5,29 @@ export const postUserExercise = async (req, res) => {
 		const { id } = req.params
 		const { description, duration } = req.body
 
-		const user = await db.user.findFirst({ where: { id: id } })
+		const foundUser = await db.user.findFirst({ where: { id: id } })
 
-		if(!user) return res.json({ error: "No user with that id" }, { status: 404 })
+		if(!foundUser) return res.json({ error: "No user with that id" }, { status: 404 })
 
 		const exercise = await db.exercise.create({
 			data: {
 				userId: id,
 				description,
 				duration
+			},
+			include: {
+				user: true
 			}
 		})
 
+		const { userId, date, user } = exercise
+
 		const returnedExercise = {
-			...exercise,
+			_id: userId,
 			username: user?.username,
-			date: new Date(exercise?.date).toDateString()
+			description: exercise.description,
+			duration: exercise.duration,
+			date: new Date(date).toDateString()
 		}
 
 		return res.json(returnedExercise, { status: 200 })

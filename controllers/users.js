@@ -46,29 +46,44 @@ export const getUserById = async (req, res) => {
 	}
 }
 
-export const getUserExercises = async (req, res) => {
+export const getUserLogs = async (req, res) => {
 	try {
 		const { id } = req.params
 
-		const user = await db.user.findFirst({ where: { id: id } })
-
-		if(!user) return res.json({ error: "No user with that id" }, { status: 404 })
-
-		const exercises = await db.exercise.findMany({
-			where: {
-				userId: id
+		const userLogs = await db.user.findFirst({
+			where: { id: id },
+			include: {
+				_count: true,
+				exercises: {
+					select: {
+						duration: true,
+						description: true,
+						date: true
+					}
+				}
 			}
 		})
 
-		const returnedExercises = exercises.map(ex => ({
-			_id: ex.id,
-			username: user?.username,
-			description: ex.description,
-			duration: ex.duration,
-			date: new Date(ex.date).toDateString()
-		}))
+		if(!userLogs) return res.json({ error: "No user with that id" }, { status: 404 })
 
-		return res.json(returnedExercises, { status: 200 })
+		// const returnedExercises = exercises.map(ex => ({
+		// 	_id: ex.id,
+		// 	username: user?.username,
+		// 	description: ex.description,
+		// 	duration: ex.duration,
+		// 	date: new Date(ex.date).toDateString()
+		// }))
+		const returnedLogs = {
+			username: userLogs.username,
+			_id: userLogs.id,
+			count: userLogs._count.exercises,
+			log: userLogs.exercises.map(ex => ({
+				...ex,
+				date: new Date(ex.date).toDateString()
+			}))
+		}
+
+		return res.json(returnedLogs, { status: 200 })
 	} catch (e) {
 		return res.json({ error: e.message }, { status: e.status })
 	}
