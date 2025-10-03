@@ -10,12 +10,14 @@ import { Router } from "express";
 
 const router = Router();
 
-router.get("/", getAllUsers);
-router.post("/", createUser);
+router
+	.get("/", getAllUsers)
+	.post("/", createUser)
+	.get("/:_id", getOneUser)
 
-router.get("/:id", getOneUser);
-router.get("/:id/exercises", getUserExercises);
-router.post("/:id/exercises", createUserExercise);
-router.get("/:id/logs", getUserLogs);
+	.post("/:_id/exercises", createUserExercise)
+	.get("/:_id/exercises", getUserExercises)
+
+	.get("/:_id/logs", getUserLogs);
 
 export { router as usersRouter };

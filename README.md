@@ -1,0 +1,1 @@
+# This is a solution to the project [_Exercise Tracker_](https://www.freecodecamp.org/learn/back-end-development-and-apis/back-end-development-and-apis-projects/exercise-tracker) from [freeCodeCamp](https://www.freecodecamp.org)

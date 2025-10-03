@@ -1,11 +1,7 @@
 import { ApiResponse, Exercise, Log, User } from "@/types";
 import { Request, Response } from "express";
 import { db } from "@/lib/db";
-import { formatISO, isAfter, isBefore, isEqual } from "date-fns";
-
-type GetUsersReturn = ApiResponse & {
-	users?: User[];
-};
+import { isAfter, isBefore, isEqual } from "date-fns";
 
 type GetExercisesReturn = ApiResponse & {
 	user?: User;
@@ -18,7 +14,7 @@ export const createUser = async (
 	try {
 		const { username } = req.body;
 
-		const existingUser = await db.user.findUnique({ where: { username } });
+		const existingUser = await db.user.findFirst({ where: { username } });
 
 		if (existingUser) {
 			return res
@@ -38,19 +34,17 @@ export const createUser = async (
 
 export const getAllUsers = async (
 	req: Request,
-	res: Response<GetUsersReturn>
+	res: Response<User[] | ApiResponse>
 ) => {
 	try {
 		const users = await db.user.findMany();
 
-		return res.status(200).json({
-			users: users.map((user) => ({
+		return res.status(200).json(
+			users.map((user) => ({
 				username: user.username,
 				_id: user.id,
-			})),
-			message: "Success",
-			success: true,
-		});
+			}))
+		);
 	} catch (e: any) {
 		return res
 			.status(e.status)
@@ -59,13 +53,13 @@ export const getAllUsers = async (
 };
 
 export const getOneUser = async (
-	req: Request<{ id: string }>,
+	req: Request<{ _id: string }>,
 	res: Response<User | ApiResponse>
 ) => {
 	try {
-		const { id } = req.params;
+		const { _id } = req.params;
 
-		const user = await db.user.findFirst({ where: { id } });
+		const user = await db.user.findFirst({ where: { id: _id } });
 
 		if (!user) {
 			return res
@@ -85,13 +79,13 @@ export const getOneUser = async (
 };
 
 export const getUserExercises = async (
-	req: Request<{ id: string }>,
+	req: Request<{ _id: string }>,
 	res: Response<GetExercisesReturn>
 ) => {
 	try {
-		const { id } = req.params;
+		const { _id } = req.params;
 
-		const user = await db.user.findFirst({ where: { id } });
+		const user = await db.user.findFirst({ where: { id: _id } });
 
 		if (!user) {
 			return res
@@ -126,32 +120,32 @@ export const getUserExercises = async (
 
 export const createUserExercise = async (
 	req: Request<
-		{ id: string },
+		{ _id: string },
 		unknown,
 		{ description: string; duration: number; date?: Date }
 	>,
 	res: Response<Exercise | ApiResponse>
 ) => {
 	try {
-		const { id } = req.params;
+		const { _id } = req.params;
 		const { description, duration, date } = req.body;
 
 		let nowDate;
 
 		if (!date) {
-			nowDate = undefined;
+			nowDate = new Date().toISOString();
 		} else {
-			nowDate = formatISO(new Date(date));
+			nowDate = new Date(date).toISOString();
 		}
 
 		const exer = await db.exercise.create({
 			data: {
 				description,
-				duration,
+				duration: Number(duration),
 				date: nowDate,
 				user: {
 					connect: {
-						id,
+						id: _id,
 					},
 				},
 			},
@@ -170,7 +164,7 @@ export const createUserExercise = async (
 			description: exer.description,
 			date: exer.date.toDateString(),
 			duration: exer.duration,
-			_id: exer.user.id,
+			_id,
 			username: exer.user.username,
 		});
 	} catch (e: any) {
@@ -180,7 +174,7 @@ export const createUserExercise = async (
 
 export const getUserLogs = async (
 	req: Request<
-		{ id: string },
+		{ _id: string },
 		unknown,
 		{},
 		{ from?: string; to?: string; limit?: string }
@@ -188,11 +182,11 @@ export const getUserLogs = async (
 	res: Response<Log | ApiResponse>
 ) => {
 	try {
-		const { id } = req.params;
+		const { _id } = req.params;
 		const { from, to, limit } = req.query;
 
 		const user = await db.user.findFirst({
-			where: { id },
+			where: { id: _id },
 			include: {
 				exercises: {
 					select: {
@@ -212,8 +206,8 @@ export const getUserLogs = async (
 
 		let filteredLogs = user.exercises.map((ex) => ({
 			description: ex.description,
-			date: ex.date.toDateString(),
 			duration: ex.duration,
+			date: new Date(ex.date).toDateString(),
 		}));
 
 		if (from) {
@@ -237,9 +231,9 @@ export const getUserLogs = async (
 		}
 
 		return res.status(200).json({
-			_id: user.id,
 			username: user.username,
 			count: filteredLogs.length,
+			_id: user.id,
 			log: filteredLogs,
 		});
 	} catch (e: any) {
